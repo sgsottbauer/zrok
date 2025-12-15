@@ -22,6 +22,7 @@ import (
 	"github.com/openziti/zrok/rest_server_zrok/operations/account"
 	"github.com/openziti/zrok/rest_server_zrok/operations/metadata"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 var (
