@@ -13,6 +13,7 @@ import (
 	"github.com/openziti/zrok/controller/config"
 	"github.com/openziti/zrok/controller/limits"
 	"github.com/openziti/zrok/controller/metrics"
+	"github.com/openziti/zrok/controller/oauth"
 	"github.com/openziti/zrok/controller/store"
 	"github.com/openziti/zrok/rest_server_zrok"
 	"github.com/openziti/zrok/rest_server_zrok/operations"
@@ -28,6 +29,7 @@ var (
 	idb         influxdb2.Client
 	limitsAgent *limits.Agent
 	agentCtrl   *agentController.Controller
+	oauthMgr    *oauth.Manager
 )
 
 func Run(inCfg *config.Config) error {
@@ -54,6 +56,17 @@ func Run(inCfg *config.Config) error {
 	api.AccountResetPasswordHandler = newResetPasswordHandler(cfg)
 	api.AccountResetPasswordRequestHandler = newResetPasswordRequestHandler()
 	api.AccountVerifyHandler = newVerifyHandler()
+	if cfg.OAuth != nil && cfg.OAuth.Enabled {
+		if mgr, err := oauth.NewManager(cfg.OAuth); err == nil {
+			oauthMgr = mgr
+			api.AccountOauthProvidersHandler = newOauthProvidersHandler(cfg)
+			api.AccountOauthAuthorizeHandler = newOauthAuthorizeHandler(cfg, oauthMgr)
+			api.AccountOauthCallbackHandler = newOauthCallbackHandler(cfg, oauthMgr)
+			logrus.Info("OAuth authentication enabled")
+		} else {
+			return errors.Wrap(err, "error creating OAuth manager")
+		}
+	}
 	api.AdminAddFrontendGrantHandler = newAddFrontendGrantHandler()
 	api.AdminAddOrganizationMemberHandler = newAddOrganizationMemberHandler()
 	api.AdminCreateAccountHandler = newCreateAccountHandler()

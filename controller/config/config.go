@@ -31,6 +31,7 @@ type Config struct {
 	Limits          *limits.Config
 	Maintenance     *MaintenanceConfig
 	Metrics         *metrics.Config
+	OAuth           *OAuthConfig
 	Registration    *RegistrationConfig
 	ResetPassword   *ResetPasswordConfig
 	Store           *store.Config
@@ -90,6 +91,27 @@ type CompatibilityConfig struct {
 	LogRequests      bool
 	VersionPatterns  []string
 	compiledPatterns []*regexp.Regexp
+}
+
+type OAuthConfig struct {
+	Enabled            bool
+	Providers          []OAuthProviderConfig `cf:"+secret"`
+	SessionLifetime    time.Duration
+	StateTokenLifetime time.Duration
+	CallbackBaseURL    string
+	SigningKey         string `cf:"+secret"`
+	EncryptionKey      string `cf:"+secret"`
+}
+
+type OAuthProviderConfig struct {
+	Type               string
+	Name               string
+	Issuer             string
+	ClientID           string
+	ClientSecret       string `cf:"+secret"`
+	Scopes             []string
+	AllowRegistration  bool
+	TrustEmailVerified bool
 }
 
 func DefaultConfig() *Config {

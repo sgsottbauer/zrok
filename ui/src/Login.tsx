@@ -1,4 +1,4 @@
-import {Box, Button, Container, TextField, Typography} from "@mui/material";
+import {Box, Button, Container, Divider, TextField, Typography} from "@mui/material";
 import {User} from "./model/user.ts";
 import {useEffect, useState} from "react";
 import {AccountApi, MetadataApi} from "./api";
@@ -9,12 +9,19 @@ interface LoginProps {
     onLogin: (user: User) => void;
 }
 
+interface OAuthProvider {
+    name?: string;
+    type?: string;
+    allowRegistration?: boolean;
+}
+
 const Login = ({ onLogin }: LoginProps) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
     const [tou, setTou] = useState<string>("");
     const [newAccountLink, setNewAccountLink] = useState<string>("");
+    const [oauthProviders, setOauthProviders] = useState<OAuthProvider[]>([]);
 
     useEffect(() => {
         new MetadataApi()._configuration()
@@ -29,6 +36,15 @@ const Login = ({ onLogin }: LoginProps) => {
             })
             .catch(e => {
                 console.log(e);
+            });
+
+        // Load OAuth providers
+        new AccountApi().oauthProviders()
+            .then(providers => {
+                setOauthProviders(providers);
+            })
+            .catch(e => {
+                console.log("OAuth not configured or error:", e);
             });
     }, []);
 
@@ -45,12 +61,36 @@ const Login = ({ onLogin }: LoginProps) => {
             });
     }
 
+    const loginWithOAuth = (providerName: string) => {
+        // Redirect to OAuth authorization endpoint
+        window.location.href = `/api/v1/oauth/${providerName}/authorize`;
+    }
+
     return (
         <Typography component="div">
             <Container maxWidth="xs">
                 <Box sx={{marginTop: 8, display: "flex", flexDirection: "column", alignItems: "center"}}>
                     <img src={zroket} height="300"/>
                     <h1 style={{ color: "#241775" }}>z r o k</h1>
+
+                    {/* OAuth Providers */}
+                    {oauthProviders.length > 0 && (
+                        <Box sx={{ width: "100%", mb: 2 }}>
+                            {oauthProviders.map(provider => (
+                                <Button
+                                    key={provider.name}
+                                    fullWidth
+                                    variant="outlined"
+                                    sx={{ mb: 1 }}
+                                    onClick={() => loginWithOAuth(provider.name || '')}
+                                >
+                                    Continue with {provider.name}
+                                </Button>
+                            ))}
+                            <Divider sx={{ my: 2 }}>OR</Divider>
+                        </Box>
+                    )}
+
                     <Box component="form" noValidate onSubmit={login}>
                         <TextField
                             margin="normal"

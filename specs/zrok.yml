@@ -95,6 +95,75 @@ paths:
         401:
           description: invalid login
 
+  /oauth/providers:
+    get:
+      tags:
+        - account
+      operationId: oauthProviders
+      summary: List available OAuth providers
+      responses:
+        200:
+          description: list of OAuth providers
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/oauthProvider'
+
+  /oauth/{provider}/authorize:
+    get:
+      tags:
+        - account
+      operationId: oauthAuthorize
+      summary: Initiate OAuth authorization flow
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          type: string
+      responses:
+        302:
+          description: redirect to OAuth provider
+        400:
+          description: invalid request
+        404:
+          description: provider not found
+
+  /oauth/{provider}/callback:
+    get:
+      tags:
+        - account
+      operationId: oauthCallback
+      summary: OAuth callback handler
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          type: string
+        - name: code
+          in: query
+          required: true
+          type: string
+        - name: state
+          in: query
+          required: true
+          type: string
+        - name: error
+          in: query
+          type: string
+      responses:
+        200:
+          description: authentication successful
+          schema:
+            properties:
+              accountToken:
+                type: string
+              email:
+                type: string
+        400:
+          description: authentication failed
+        500:
+          description: internal server error
+
   /regenerateAccountToken:
     post:
       tags:
@@ -1935,6 +2004,16 @@ definitions:
 
   version:
     type: string
+
+  oauthProvider:
+    type: object
+    properties:
+      name:
+        type: string
+      type:
+        type: string
+      allowRegistration:
+        type: boolean
 
 produces:
 - application/zrok.v1+json

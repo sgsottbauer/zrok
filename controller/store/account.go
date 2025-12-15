@@ -7,12 +7,14 @@ import (
 
 type Account struct {
 	Model
-	Email     string
-	Salt      string
-	Password  string
-	Token     string
-	Limitless bool
-	Deleted   bool
+	Email         string
+	Salt          string
+	Password      string
+	Token         string
+	Limitless     bool
+	Deleted       bool
+	OauthProvider *string
+	OauthSubject  *string
 }
 
 func (str *Store) CreateAccount(a *Account, tx *sqlx.Tx) (int, error) {
@@ -80,4 +82,24 @@ func (str *Store) DeleteAccount(id int, trx *sqlx.Tx) error {
 		return errors.Wrap(err, "error executing accounts delete statement")
 	}
 	return nil
+}
+
+func (str *Store) FindAccountWithOAuth(provider, subject string, tx *sqlx.Tx) (*Account, error) {
+	a := &Account{}
+	if err := tx.QueryRowx("select * from accounts where oauth_provider = $1 and oauth_subject = $2 and not deleted", provider, subject).StructScan(a); err != nil {
+		return nil, errors.Wrap(err, "error selecting account by oauth credentials")
+	}
+	return a, nil
+}
+
+func (str *Store) CreateOAuthAccount(a *Account, tx *sqlx.Tx) (int, error) {
+	stmt, err := tx.Prepare("insert into accounts (email, oauth_provider, oauth_subject, token, limitless) values (lower($1), $2, $3, $4, $5) returning id")
+	if err != nil {
+		return 0, errors.Wrap(err, "error preparing oauth account insert statement")
+	}
+	var id int
+	if err := stmt.QueryRow(a.Email, a.OauthProvider, a.OauthSubject, a.Token, a.Limitless).Scan(&id); err != nil {
+		return 0, errors.Wrap(err, "error executing oauth account insert statement")
+	}
+	return id, nil
 }

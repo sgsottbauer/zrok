@@ -1873,6 +1873,109 @@ func init() {
         }
       }
     },
+    "/oauth/providers": {
+      "get": {
+        "tags": [
+          "account"
+        ],
+        "summary": "List available OAuth providers",
+        "operationId": "oauthProviders",
+        "responses": {
+          "200": {
+            "description": "list of OAuth providers",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/oauthProvider"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/{provider}/authorize": {
+      "get": {
+        "tags": [
+          "account"
+        ],
+        "summary": "Initiate OAuth authorization flow",
+        "operationId": "oauthAuthorize",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "redirect to OAuth provider"
+          },
+          "400": {
+            "description": "invalid request"
+          },
+          "404": {
+            "description": "provider not found"
+          }
+        }
+      }
+    },
+    "/oauth/{provider}/callback": {
+      "get": {
+        "tags": [
+          "account"
+        ],
+        "summary": "OAuth callback handler",
+        "operationId": "oauthCallback",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "code",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "state",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "error",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "authentication successful",
+            "schema": {
+              "properties": {
+                "accountToken": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "authentication failed"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
     "/organization": {
       "post": {
         "security": [
@@ -2910,6 +3013,20 @@ func init() {
         },
         "tx": {
           "type": "number"
+        }
+      }
+    },
+    "oauthProvider": {
+      "type": "object",
+      "properties": {
+        "allowRegistration": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
         }
       }
     },
@@ -4889,6 +5006,109 @@ func init() {
         }
       }
     },
+    "/oauth/providers": {
+      "get": {
+        "tags": [
+          "account"
+        ],
+        "summary": "List available OAuth providers",
+        "operationId": "oauthProviders",
+        "responses": {
+          "200": {
+            "description": "list of OAuth providers",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/oauthProvider"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/{provider}/authorize": {
+      "get": {
+        "tags": [
+          "account"
+        ],
+        "summary": "Initiate OAuth authorization flow",
+        "operationId": "oauthAuthorize",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "redirect to OAuth provider"
+          },
+          "400": {
+            "description": "invalid request"
+          },
+          "404": {
+            "description": "provider not found"
+          }
+        }
+      }
+    },
+    "/oauth/{provider}/callback": {
+      "get": {
+        "tags": [
+          "account"
+        ],
+        "summary": "OAuth callback handler",
+        "operationId": "oauthCallback",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "code",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "state",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "error",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "authentication successful",
+            "schema": {
+              "properties": {
+                "accountToken": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "authentication failed"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
     "/organization": {
       "post": {
         "security": [
@@ -6023,6 +6243,20 @@ func init() {
         },
         "tx": {
           "type": "number"
+        }
+      }
+    },
+    "oauthProvider": {
+      "type": "object",
+      "properties": {
+        "allowRegistration": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
         }
       }
     },

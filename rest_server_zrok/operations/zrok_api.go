@@ -352,6 +352,12 @@ type ZrokAPI struct {
 	MetadataListPublicFrontendsForAccountHandler metadata.ListPublicFrontendsForAccountHandler
 	// AccountLoginHandler sets the operation handler for the login operation
 	AccountLoginHandler account.LoginHandler
+	// AccountOauthAuthorizeHandler sets the operation handler for the oauth authorize operation
+	AccountOauthAuthorizeHandler account.OauthAuthorizeHandler
+	// AccountOauthCallbackHandler sets the operation handler for the oauth callback operation
+	AccountOauthCallbackHandler account.OauthCallbackHandler
+	// AccountOauthProvidersHandler sets the operation handler for the oauth providers operation
+	AccountOauthProvidersHandler account.OauthProvidersHandler
 	// MetadataOrgAccountOverviewHandler sets the operation handler for the org account overview operation
 	MetadataOrgAccountOverviewHandler metadata.OrgAccountOverviewHandler
 	// MetadataOverviewHandler sets the operation handler for the overview operation
@@ -588,6 +594,15 @@ func (o *ZrokAPI) Validate() error {
 	}
 	if o.AccountLoginHandler == nil {
 		unregistered = append(unregistered, "account.LoginHandler")
+	}
+	if o.AccountOauthAuthorizeHandler == nil {
+		unregistered = append(unregistered, "account.OauthAuthorizeHandler")
+	}
+	if o.AccountOauthCallbackHandler == nil {
+		unregistered = append(unregistered, "account.OauthCallbackHandler")
+	}
+	if o.AccountOauthProvidersHandler == nil {
+		unregistered = append(unregistered, "account.OauthProvidersHandler")
 	}
 	if o.MetadataOrgAccountOverviewHandler == nil {
 		unregistered = append(unregistered, "metadata.OrgAccountOverviewHandler")
@@ -904,6 +919,18 @@ func (o *ZrokAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/login"] = account.NewLogin(o.context, o.AccountLoginHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/oauth/{provider}/authorize"] = account.NewOauthAuthorize(o.context, o.AccountOauthAuthorizeHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/oauth/{provider}/callback"] = account.NewOauthCallback(o.context, o.AccountOauthCallbackHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/oauth/providers"] = account.NewOauthProviders(o.context, o.AccountOauthProvidersHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
