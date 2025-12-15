@@ -31,9 +31,9 @@ func init() {
   "info": {
     "description": "zrok client access",
     "title": "zrok",
-    "version": "1.0.0"
+    "version": "2.0.0"
   },
-  "basePath": "/api/v1",
+  "basePath": "/api/v2",
   "paths": {
     "/access": {
       "post": {
@@ -134,6 +134,92 @@ func init() {
           },
           "500": {
             "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/accesses": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "metadata"
+        ],
+        "operationId": "listAccesses",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "filter by environment ziti identity",
+            "name": "envZId",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by associated share token",
+            "name": "shareToken",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by bind address (substring match)",
+            "name": "bindAddress",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by description (substring match)",
+            "name": "description",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by created date (RFC3339 format)",
+            "name": "createdAfter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by created date (RFC3339 format)",
+            "name": "createdBefore",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by updated date (RFC3339 format)",
+            "name": "updatedAfter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by updated date (RFC3339 format)",
+            "name": "updatedBefore",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "list of accesses",
+            "schema": {
+              "$ref": "#/definitions/accessesList"
+            }
+          },
+          "400": {
+            "description": "bad request (e.g., activityDuration exceeds 30d, invalid date format)",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
           }
         }
       }
@@ -436,19 +522,16 @@ func init() {
                 "envZId": {
                   "type": "string"
                 },
-                "frontendSelection": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
                 "insecure": {
                   "type": "boolean"
                 },
-                "oauthCheckInterval": {
-                  "type": "string"
+                "nameSelections": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/nameSelection"
+                  }
                 },
-                "oauthEmailAddressPatterns": {
+                "oauthEmailDomains": {
                   "type": "array",
                   "items": {
                     "type": "string"
@@ -457,15 +540,20 @@ func init() {
                 "oauthProvider": {
                   "type": "string"
                 },
+                "oauthRefreshInterval": {
+                  "type": "string"
+                },
                 "open": {
                   "type": "boolean"
+                },
+                "privateShareToken": {
+                  "type": "string"
                 },
                 "shareMode": {
                   "type": "string",
                   "enum": [
                     "public",
-                    "private",
-                    "reserved"
+                    "private"
                   ]
                 },
                 "target": {
@@ -609,6 +697,23 @@ func init() {
                       "bindAddress": {
                         "type": "string"
                       },
+                      "failure": {
+                        "type": "object",
+                        "properties": {
+                          "count": {
+                            "type": "integer"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "lastError": {
+                            "type": "string"
+                          },
+                          "nextRetry": {
+                            "type": "string"
+                          }
+                        }
+                      },
                       "frontendToken": {
                         "type": "string"
                       },
@@ -617,6 +722,9 @@ func init() {
                         "items": {
                           "type": "string"
                         }
+                      },
+                      "status": {
+                        "type": "string"
                       },
                       "token": {
                         "type": "string"
@@ -635,6 +743,23 @@ func init() {
                       "backendMode": {
                         "type": "string"
                       },
+                      "failure": {
+                        "type": "object",
+                        "properties": {
+                          "count": {
+                            "type": "integer"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "lastError": {
+                            "type": "string"
+                          },
+                          "nextRetry": {
+                            "type": "string"
+                          }
+                        }
+                      },
                       "frontendEndpoints": {
                         "type": "array",
                         "items": {
@@ -642,9 +767,6 @@ func init() {
                         }
                       },
                       "open": {
-                        "type": "boolean"
-                      },
-                      "reserved": {
                         "type": "boolean"
                       },
                       "shareMode": {
@@ -1128,6 +1250,134 @@ func init() {
         }
       }
     },
+    "/environments": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "metadata"
+        ],
+        "operationId": "listEnvironments",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "filter by description (case-insensitive substring match)",
+            "name": "description",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by host (case-insensitive substring match)",
+            "name": "host",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by address (exact match)",
+            "name": "address",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter by whether agent is enrolled",
+            "name": "remoteAgent",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter by whether environment has active shares",
+            "name": "hasShares",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter by whether environment has active accesses",
+            "name": "hasAccesses",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter by whether environment has metrics within activityDuration timeframe",
+            "name": "hasActivity",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter environments WITHOUT recent activity (inverse of hasActivity)",
+            "name": "idle",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by share count with operator (e.g., \"\u003e0\", \"\u003e=5\", \"=0\", \"\u003c10\", \"\u003c=3\")",
+            "name": "shareCount",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by access count with operator (e.g., \"\u003e0\", \"\u003e=5\", \"=0\", \"\u003c10\", \"\u003c=3\")",
+            "name": "accessCount",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by created date (RFC3339 datetime, inclusive)",
+            "name": "createdAfter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by created date (RFC3339 datetime, inclusive)",
+            "name": "createdBefore",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by updated date (RFC3339 datetime, inclusive)",
+            "name": "updatedAfter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by updated date (RFC3339 datetime, inclusive)",
+            "name": "updatedBefore",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "duration for hasActivity filter (e.g., \"24h\", \"7d\", \"30d\"). default \"24h\", maximum \"30d\" (720h)",
+            "name": "activityDuration",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "list of environments",
+            "schema": {
+              "$ref": "#/definitions/environmentsList"
+            }
+          },
+          "400": {
+            "description": "bad request (e.g., activityDuration exceeds 30d, invalid date format, invalid operator)",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
+          }
+        }
+      }
+    },
     "/frontend": {
       "post": {
         "security": [
@@ -1146,6 +1396,9 @@ func init() {
             "schema": {
               "type": "object",
               "properties": {
+                "dynamic": {
+                  "type": "boolean"
+                },
                 "permissionMode": {
                   "type": "string",
                   "enum": [
@@ -1248,6 +1501,12 @@ func init() {
             "schema": {
               "type": "object",
               "properties": {
+                "dynamic": {
+                  "type": "boolean"
+                },
+                "dynamicSet": {
+                  "type": "boolean"
+                },
                 "frontendToken": {
                   "type": "string"
                 },
@@ -1369,6 +1628,61 @@ func init() {
         }
       }
     },
+    "/frontend/namespace/mapping/{frontendToken}": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "listFrontendNamespaceMappings",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "frontendToken",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "frontend namespace mappings listed",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "createdAt": {
+                    "type": "integer"
+                  },
+                  "frontendToken": {
+                    "type": "string"
+                  },
+                  "isDefault": {
+                    "type": "boolean"
+                  },
+                  "namespaceToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "frontend not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
     "/frontends": {
       "get": {
         "security": [
@@ -1391,7 +1705,13 @@ func init() {
                   "createdAt": {
                     "type": "integer"
                   },
+                  "dynamic": {
+                    "type": "boolean"
+                  },
                   "frontendToken": {
+                    "type": "string"
+                  },
+                  "permissionMode": {
                     "type": "string"
                   },
                   "publicName": {
@@ -1628,6 +1948,7 @@ func init() {
         }
       }
     },
+
     "/login": {
       "post": {
         "tags": [
@@ -1873,7 +2194,431 @@ func init() {
         }
       }
     },
-    "/oauth/providers": {
+    "/namespace": {
+      "post": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "createNamespace",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "open": {
+                  "type": "boolean"
+                },
+                "token": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "namespace created",
+            "schema": {
+              "properties": {
+                "namespaceToken": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "409": {
+            "description": "namespace already exists"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "deleteNamespace",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "properties": {
+                "namespaceToken": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "namespace deleted"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      },
+      "patch": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "updateNamespace",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespaceToken": {
+                  "type": "string"
+                },
+                "open": {
+                  "type": "boolean"
+                },
+                "openSet": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "namespace updated"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/namespace/frontend/mapping": {
+      "post": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "addNamespaceFrontendMapping",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "frontendToken": {
+                  "type": "string"
+                },
+                "isDefault": {
+                  "type": "boolean"
+                },
+                "namespaceToken": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "namespace frontend mapping added"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "removeNamespaceFrontendMapping",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "frontendToken": {
+                  "type": "string"
+                },
+                "namespaceToken": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "namespace frontend mapping removed"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/namespace/frontend/mapping/{namespaceToken}": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "listNamespaceFrontendMappings",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespaceToken",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "namespace frontend mappings listed",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "createdAt": {
+                    "type": "integer"
+                  },
+                  "frontendToken": {
+                    "type": "string"
+                  },
+                  "isDefault": {
+                    "type": "boolean"
+                  },
+                  "namespaceToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "namespace not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/namespace/grant": {
+      "post": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "addNamespaceGrant",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string"
+                },
+                "namespaceToken": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "namespace grant added"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "removeNamespaceGrant",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string"
+                },
+                "namespaceToken": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "namespace grant removed"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/namespaces": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "listNamespaces",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "createdAt": {
+                    "type": "integer"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "namespaceToken": {
+                    "type": "string"
+                  },
+                  "open": {
+                    "type": "boolean"
+                  },
+                  "updatedAt": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+     "/oauth/providers": {
       "get": {
         "tags": [
           "account"
@@ -2272,48 +3017,6 @@ func init() {
         }
       }
     },
-    "/overview/public-frontends": {
-      "get": {
-        "security": [
-          {
-            "key": []
-          }
-        ],
-        "tags": [
-          "metadata"
-        ],
-        "operationId": "listPublicFrontendsForAccount",
-        "responses": {
-          "200": {
-            "description": "public frontends list returned",
-            "schema": {
-              "properties": {
-                "publicFrontends": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "publicName": {
-                        "type": "string"
-                      },
-                      "urlTemplate": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "unauthorized"
-          },
-          "500": {
-            "description": "internal server error"
-          }
-        }
-      }
-    },
     "/overview/{organizationToken}/{accountEmail}": {
       "get": {
         "security": [
@@ -2554,7 +3257,10 @@ func init() {
             "description": "not found"
           },
           "409": {
-            "description": "conflict"
+            "description": "conflict",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
           },
           "422": {
             "description": "unprocessable"
@@ -2589,9 +3295,6 @@ func init() {
                     "type": "string"
                   }
                 },
-                "backendProxyEndpoint": {
-                  "type": "string"
-                },
                 "removeAccessGrants": {
                   "type": "array",
                   "items": {
@@ -2620,6 +3323,375 @@ func init() {
           },
           "500": {
             "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/share/name": {
+      "post": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "share"
+        ],
+        "operationId": "createShareName",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "namespaceToken": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "name created"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "namespace not found"
+          },
+          "409": {
+            "description": "name already exists",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "share"
+        ],
+        "operationId": "deleteShareName",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "namespaceToken": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "name deleted"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "name not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      },
+      "patch": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "share"
+        ],
+        "operationId": "updateShareName",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "namespaceToken": {
+                  "type": "string"
+                },
+                "reserved": {
+                  "description": "whether the name should be reserved (true) or released (false)",
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "name updated successfully"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "name not found"
+          },
+          "409": {
+            "description": "conflict - cannot change reservation state",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/share/names": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "share"
+        ],
+        "operationId": "listAllNames",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/name"
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/share/names/{namespaceToken}": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "share"
+        ],
+        "operationId": "listNamesForNamespace",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespaceToken",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/name"
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "namespace not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/share/namespaces": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "share"
+        ],
+        "operationId": "listShareNamespaces",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "namespaceToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/shares": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "metadata"
+        ],
+        "operationId": "listShares",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "filter by environment ziti identity",
+            "name": "envZId",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by share mode (public/private)",
+            "name": "shareMode",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by backend mode",
+            "name": "backendMode",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by share token (substring match)",
+            "name": "shareToken",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by target (substring match)",
+            "name": "target",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by permission mode (open/closed)",
+            "name": "permissionMode",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter shares with recent activity",
+            "name": "hasActivity",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter shares WITHOUT recent activity (inverse of hasActivity)",
+            "name": "idle",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "duration for hasActivity filter (e.g., \"24h\", \"7d\", \"30d\"). default \"24h\", maximum \"30d\" (720h)",
+            "name": "activityDuration",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by created date (RFC3339 format)",
+            "name": "createdAfter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by created date (RFC3339 format)",
+            "name": "createdBefore",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by updated date (RFC3339 format)",
+            "name": "updatedAfter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by updated date (RFC3339 format)",
+            "name": "updatedBefore",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "list of shares",
+            "schema": {
+              "$ref": "#/definitions/sharesList"
+            }
+          },
+          "400": {
+            "description": "bad request (e.g., activityDuration exceeds 30d, invalid date format)",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
           }
         }
       }
@@ -2749,9 +3821,6 @@ func init() {
                 "envZId": {
                   "type": "string"
                 },
-                "reserved": {
-                  "type": "boolean"
-                },
                 "shareToken": {
                   "type": "string"
                 }
@@ -2855,6 +3924,52 @@ func init() {
     }
   },
   "definitions": {
+    "accessSummary": {
+      "type": "object",
+      "properties": {
+        "backendMode": {
+          "type": "string"
+        },
+        "bindAddress": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "description": {
+          "type": "string"
+        },
+        "envZId": {
+          "type": "string"
+        },
+        "frontendToken": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "limited": {
+          "type": "boolean"
+        },
+        "shareToken": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "integer"
+        }
+      }
+    },
+    "accessesList": {
+      "type": "object",
+      "properties": {
+        "accesses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/accessSummary"
+          }
+        }
+      }
+    },
     "authUser": {
       "type": "object",
       "properties": {
@@ -2935,10 +4050,56 @@ func init() {
         }
       }
     },
+    "environmentSummary": {
+      "type": "object",
+      "properties": {
+        "accessCount": {
+          "type": "integer"
+        },
+        "address": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "description": {
+          "type": "string"
+        },
+        "envZId": {
+          "type": "string"
+        },
+        "host": {
+          "type": "string"
+        },
+        "limited": {
+          "type": "boolean"
+        },
+        "remoteAgent": {
+          "type": "boolean"
+        },
+        "shareCount": {
+          "type": "integer"
+        },
+        "updatedAt": {
+          "type": "integer"
+        }
+      }
+    },
     "environments": {
       "type": "array",
       "items": {
         "$ref": "#/definitions/environment"
+      }
+    },
+    "environmentsList": {
+      "type": "object",
+      "properties": {
+        "environments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/environmentSummary"
+          }
+        }
       }
     },
     "errorMessage": {
@@ -3016,20 +4177,54 @@ func init() {
         }
       }
     },
-    "oauthProvider": {
+    "name": {
       "type": "object",
       "properties": {
-        "allowRegistration": {
-          "type": "boolean"
+        "createdAt": {
+          "type": "integer"
         },
         "name": {
           "type": "string"
         },
-        "type": {
+        "namespaceName": {
+          "type": "string"
+        },
+        "namespaceToken": {
+          "type": "string"
+        },
+        "reserved": {
+          "type": "boolean"
+        },
+        "shareToken": {
           "type": "string"
         }
       }
     },
+    "nameSelection": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "namespaceToken": {
+          "type": "string"
+        }
+      }
+    },
+    "oauthProvider": {
+		  "type": "object",
+		  "properties": {
+			"allowRegistration": {
+			  "type": "boolean"
+			},
+			"name": {
+			  "type": "string"
+			},
+			"type": {
+			  "type": "string"
+			}
+		  }
+		},
     "overview": {
       "type": "object",
       "properties": {
@@ -3040,6 +4235,49 @@ func init() {
           "type": "array",
           "items": {
             "$ref": "#/definitions/environmentAndResources"
+          }
+        },
+        "names": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "createdAt": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "namespaceName": {
+                "type": "string"
+              },
+              "namespaceToken": {
+                "type": "string"
+              },
+              "reserved": {
+                "type": "boolean"
+              },
+              "shareToken": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "namespaces": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "namespaceToken": {
+                "type": "string"
+              }
+            }
           }
         }
       }
@@ -3073,31 +4311,28 @@ func init() {
         "backendMode": {
           "type": "string"
         },
-        "backendProxyEndpoint": {
-          "type": "string"
-        },
         "createdAt": {
           "type": "integer"
         },
         "envZId": {
           "type": "string"
         },
-        "frontendEndpoint": {
-          "type": "string"
-        },
-        "frontendSelection": {
-          "type": "string"
+        "frontendEndpoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "limited": {
-          "type": "boolean"
-        },
-        "reserved": {
           "type": "boolean"
         },
         "shareMode": {
           "type": "string"
         },
         "shareToken": {
+          "type": "string"
+        },
+        "target": {
           "type": "string"
         },
         "updatedAt": {
@@ -3120,12 +4355,6 @@ func init() {
         "authScheme": {
           "type": "string"
         },
-        "authUsers": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/authUser"
-          }
-        },
         "backendMode": {
           "type": "string",
           "enum": [
@@ -3138,20 +4367,20 @@ func init() {
             "socks"
           ]
         },
-        "backendProxyEndpoint": {
-          "type": "string"
+        "basicAuthUsers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/authUser"
+          }
         },
         "envZId": {
           "type": "string"
         },
-        "frontendSelection": {
+        "nameSelections": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/definitions/nameSelection"
           }
-        },
-        "oauthAuthorizationCheckInterval": {
-          "type": "string"
         },
         "oauthEmailDomains": {
           "type": "array",
@@ -3162,6 +4391,9 @@ func init() {
         "oauthProvider": {
           "type": "string"
         },
+        "oauthRefreshInterval": {
+          "type": "string"
+        },
         "permissionMode": {
           "type": "string",
           "enum": [
@@ -3169,8 +4401,8 @@ func init() {
             "closed"
           ]
         },
-        "reserved": {
-          "type": "boolean"
+        "privateShareToken": {
+          "type": "string"
         },
         "shareMode": {
           "type": "string",
@@ -3179,7 +4411,7 @@ func init() {
             "private"
           ]
         },
-        "uniqueName": {
+        "target": {
           "type": "string"
         }
       }
@@ -3198,10 +4430,59 @@ func init() {
         }
       }
     },
+    "shareSummary": {
+      "type": "object",
+      "properties": {
+        "backendMode": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "envZId": {
+          "type": "string"
+        },
+        "frontendEndpoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "limited": {
+          "type": "boolean"
+        },
+        "shareMode": {
+          "type": "string"
+        },
+        "shareToken": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "integer"
+        },
+        "zId": {
+          "type": "string"
+        }
+      }
+    },
     "shares": {
       "type": "array",
       "items": {
         "$ref": "#/definitions/share"
+      }
+    },
+    "sharesList": {
+      "type": "object",
+      "properties": {
+        "shares": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/shareSummary"
+          }
+        }
       }
     },
     "sparkData": {
@@ -3247,9 +4528,9 @@ func init() {
   "info": {
     "description": "zrok client access",
     "title": "zrok",
-    "version": "1.0.0"
+    "version": "2.0.0"
   },
-  "basePath": "/api/v1",
+  "basePath": "/api/v2",
   "paths": {
     "/access": {
       "post": {
@@ -3350,6 +4631,92 @@ func init() {
           },
           "500": {
             "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/accesses": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "metadata"
+        ],
+        "operationId": "listAccesses",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "filter by environment ziti identity",
+            "name": "envZId",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by associated share token",
+            "name": "shareToken",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by bind address (substring match)",
+            "name": "bindAddress",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by description (substring match)",
+            "name": "description",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by created date (RFC3339 format)",
+            "name": "createdAfter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by created date (RFC3339 format)",
+            "name": "createdBefore",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by updated date (RFC3339 format)",
+            "name": "updatedAfter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by updated date (RFC3339 format)",
+            "name": "updatedBefore",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "list of accesses",
+            "schema": {
+              "$ref": "#/definitions/accessesList"
+            }
+          },
+          "400": {
+            "description": "bad request (e.g., activityDuration exceeds 30d, invalid date format)",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
           }
         }
       }
@@ -3652,19 +5019,16 @@ func init() {
                 "envZId": {
                   "type": "string"
                 },
-                "frontendSelection": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
                 "insecure": {
                   "type": "boolean"
                 },
-                "oauthCheckInterval": {
-                  "type": "string"
+                "nameSelections": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/nameSelection"
+                  }
                 },
-                "oauthEmailAddressPatterns": {
+                "oauthEmailDomains": {
                   "type": "array",
                   "items": {
                     "type": "string"
@@ -3673,15 +5037,20 @@ func init() {
                 "oauthProvider": {
                   "type": "string"
                 },
+                "oauthRefreshInterval": {
+                  "type": "string"
+                },
                 "open": {
                   "type": "boolean"
+                },
+                "privateShareToken": {
+                  "type": "string"
                 },
                 "shareMode": {
                   "type": "string",
                   "enum": [
                     "public",
-                    "private",
-                    "reserved"
+                    "private"
                   ]
                 },
                 "target": {
@@ -4298,6 +5667,134 @@ func init() {
         }
       }
     },
+    "/environments": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "metadata"
+        ],
+        "operationId": "listEnvironments",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "filter by description (case-insensitive substring match)",
+            "name": "description",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by host (case-insensitive substring match)",
+            "name": "host",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by address (exact match)",
+            "name": "address",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter by whether agent is enrolled",
+            "name": "remoteAgent",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter by whether environment has active shares",
+            "name": "hasShares",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter by whether environment has active accesses",
+            "name": "hasAccesses",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter by whether environment has metrics within activityDuration timeframe",
+            "name": "hasActivity",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter environments WITHOUT recent activity (inverse of hasActivity)",
+            "name": "idle",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by share count with operator (e.g., \"\u003e0\", \"\u003e=5\", \"=0\", \"\u003c10\", \"\u003c=3\")",
+            "name": "shareCount",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by access count with operator (e.g., \"\u003e0\", \"\u003e=5\", \"=0\", \"\u003c10\", \"\u003c=3\")",
+            "name": "accessCount",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by created date (RFC3339 datetime, inclusive)",
+            "name": "createdAfter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by created date (RFC3339 datetime, inclusive)",
+            "name": "createdBefore",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by updated date (RFC3339 datetime, inclusive)",
+            "name": "updatedAfter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by updated date (RFC3339 datetime, inclusive)",
+            "name": "updatedBefore",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "duration for hasActivity filter (e.g., \"24h\", \"7d\", \"30d\"). default \"24h\", maximum \"30d\" (720h)",
+            "name": "activityDuration",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "list of environments",
+            "schema": {
+              "$ref": "#/definitions/environmentsList"
+            }
+          },
+          "400": {
+            "description": "bad request (e.g., activityDuration exceeds 30d, invalid date format, invalid operator)",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
+          }
+        }
+      }
+    },
     "/frontend": {
       "post": {
         "security": [
@@ -4316,6 +5813,9 @@ func init() {
             "schema": {
               "type": "object",
               "properties": {
+                "dynamic": {
+                  "type": "boolean"
+                },
                 "permissionMode": {
                   "type": "string",
                   "enum": [
@@ -4418,6 +5918,12 @@ func init() {
             "schema": {
               "type": "object",
               "properties": {
+                "dynamic": {
+                  "type": "boolean"
+                },
+                "dynamicSet": {
+                  "type": "boolean"
+                },
                 "frontendToken": {
                   "type": "string"
                 },
@@ -4532,6 +6038,47 @@ func init() {
             "schema": {
               "$ref": "#/definitions/errorMessage"
             }
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/frontend/namespace/mapping/{frontendToken}": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "listFrontendNamespaceMappings",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "frontendToken",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "frontend namespace mappings listed",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ListFrontendNamespaceMappingsOKBodyItems0"
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "frontend not found"
           },
           "500": {
             "description": "internal server error"
@@ -5006,7 +6553,397 @@ func init() {
         }
       }
     },
-    "/oauth/providers": {
+    "/namespace": {
+      "post": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "createNamespace",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "open": {
+                  "type": "boolean"
+                },
+                "token": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "namespace created",
+            "schema": {
+              "properties": {
+                "namespaceToken": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "409": {
+            "description": "namespace already exists"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "deleteNamespace",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "properties": {
+                "namespaceToken": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "namespace deleted"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      },
+      "patch": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "updateNamespace",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespaceToken": {
+                  "type": "string"
+                },
+                "open": {
+                  "type": "boolean"
+                },
+                "openSet": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "namespace updated"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/namespace/frontend/mapping": {
+      "post": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "addNamespaceFrontendMapping",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "frontendToken": {
+                  "type": "string"
+                },
+                "isDefault": {
+                  "type": "boolean"
+                },
+                "namespaceToken": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "namespace frontend mapping added"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "removeNamespaceFrontendMapping",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "frontendToken": {
+                  "type": "string"
+                },
+                "namespaceToken": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "namespace frontend mapping removed"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/namespace/frontend/mapping/{namespaceToken}": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "listNamespaceFrontendMappings",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespaceToken",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "namespace frontend mappings listed",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ListNamespaceFrontendMappingsOKBodyItems0"
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "namespace not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/namespace/grant": {
+      "post": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "addNamespaceGrant",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string"
+                },
+                "namespaceToken": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "namespace grant added"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "removeNamespaceGrant",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string"
+                },
+                "namespaceToken": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "namespace grant removed"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/namespaces": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "listNamespaces",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ListNamespacesOKBodyItems0"
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+ "/oauth/providers": {
       "get": {
         "tags": [
           "account"
@@ -5391,40 +7328,6 @@ func init() {
         }
       }
     },
-    "/overview/public-frontends": {
-      "get": {
-        "security": [
-          {
-            "key": []
-          }
-        ],
-        "tags": [
-          "metadata"
-        ],
-        "operationId": "listPublicFrontendsForAccount",
-        "responses": {
-          "200": {
-            "description": "public frontends list returned",
-            "schema": {
-              "properties": {
-                "publicFrontends": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/PublicFrontendsItems0"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "unauthorized"
-          },
-          "500": {
-            "description": "internal server error"
-          }
-        }
-      }
-    },
     "/overview/{organizationToken}/{accountEmail}": {
       "get": {
         "security": [
@@ -5665,7 +7568,10 @@ func init() {
             "description": "not found"
           },
           "409": {
-            "description": "conflict"
+            "description": "conflict",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
           },
           "422": {
             "description": "unprocessable"
@@ -5700,9 +7606,6 @@ func init() {
                     "type": "string"
                   }
                 },
-                "backendProxyEndpoint": {
-                  "type": "string"
-                },
                 "removeAccessGrants": {
                   "type": "array",
                   "items": {
@@ -5731,6 +7634,364 @@ func init() {
           },
           "500": {
             "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/share/name": {
+      "post": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "share"
+        ],
+        "operationId": "createShareName",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "namespaceToken": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "name created"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "namespace not found"
+          },
+          "409": {
+            "description": "name already exists",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "share"
+        ],
+        "operationId": "deleteShareName",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "namespaceToken": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "name deleted"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "name not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      },
+      "patch": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "share"
+        ],
+        "operationId": "updateShareName",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "namespaceToken": {
+                  "type": "string"
+                },
+                "reserved": {
+                  "description": "whether the name should be reserved (true) or released (false)",
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "name updated successfully"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "name not found"
+          },
+          "409": {
+            "description": "conflict - cannot change reservation state",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/share/names": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "share"
+        ],
+        "operationId": "listAllNames",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/name"
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/share/names/{namespaceToken}": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "share"
+        ],
+        "operationId": "listNamesForNamespace",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespaceToken",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/name"
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "404": {
+            "description": "namespace not found"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/share/namespaces": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "share"
+        ],
+        "operationId": "listShareNamespaces",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ListShareNamespacesOKBodyItems0"
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "500": {
+            "description": "internal server error"
+          }
+        }
+      }
+    },
+    "/shares": {
+      "get": {
+        "security": [
+          {
+            "key": []
+          }
+        ],
+        "tags": [
+          "metadata"
+        ],
+        "operationId": "listShares",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "filter by environment ziti identity",
+            "name": "envZId",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by share mode (public/private)",
+            "name": "shareMode",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by backend mode",
+            "name": "backendMode",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by share token (substring match)",
+            "name": "shareToken",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by target (substring match)",
+            "name": "target",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by permission mode (open/closed)",
+            "name": "permissionMode",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter shares with recent activity",
+            "name": "hasActivity",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter shares WITHOUT recent activity (inverse of hasActivity)",
+            "name": "idle",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "duration for hasActivity filter (e.g., \"24h\", \"7d\", \"30d\"). default \"24h\", maximum \"30d\" (720h)",
+            "name": "activityDuration",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by created date (RFC3339 format)",
+            "name": "createdAfter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by created date (RFC3339 format)",
+            "name": "createdBefore",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by updated date (RFC3339 format)",
+            "name": "updatedAfter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by updated date (RFC3339 format)",
+            "name": "updatedBefore",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "list of shares",
+            "schema": {
+              "$ref": "#/definitions/sharesList"
+            }
+          },
+          "400": {
+            "description": "bad request (e.g., activityDuration exceeds 30d, invalid date format)",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/errorMessage"
+            }
           }
         }
       }
@@ -5860,9 +8121,6 @@ func init() {
                 "envZId": {
                   "type": "string"
                 },
-                "reserved": {
-                  "type": "boolean"
-                },
                 "shareToken": {
                   "type": "string"
                 }
@@ -5972,6 +8230,23 @@ func init() {
         "bindAddress": {
           "type": "string"
         },
+        "failure": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer"
+            },
+            "id": {
+              "type": "string"
+            },
+            "lastError": {
+              "type": "string"
+            },
+            "nextRetry": {
+              "type": "string"
+            }
+          }
+        },
         "frontendToken": {
           "type": "string"
         },
@@ -5981,7 +8256,44 @@ func init() {
             "type": "string"
           }
         },
+        "status": {
+          "type": "string"
+        },
         "token": {
+          "type": "string"
+        }
+      }
+    },
+    "AccessesItems0Failure": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "lastError": {
+          "type": "string"
+        },
+        "nextRetry": {
+          "type": "string"
+        }
+      }
+    },
+    "ListFrontendNamespaceMappingsOKBodyItems0": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "integer"
+        },
+        "frontendToken": {
+          "type": "string"
+        },
+        "isDefault": {
+          "type": "boolean"
+        },
+        "namespaceToken": {
           "type": "string"
         }
       }
@@ -5992,7 +8304,13 @@ func init() {
         "createdAt": {
           "type": "integer"
         },
+        "dynamic": {
+          "type": "boolean"
+        },
         "frontendToken": {
+          "type": "string"
+        },
+        "permissionMode": {
           "type": "string"
         },
         "publicName": {
@@ -6005,6 +8323,60 @@ func init() {
           "type": "string"
         },
         "zId": {
+          "type": "string"
+        }
+      }
+    },
+    "ListNamespaceFrontendMappingsOKBodyItems0": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "integer"
+        },
+        "frontendToken": {
+          "type": "string"
+        },
+        "isDefault": {
+          "type": "boolean"
+        },
+        "namespaceToken": {
+          "type": "string"
+        }
+      }
+    },
+    "ListNamespacesOKBodyItems0": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "integer"
+        },
+        "description": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "namespaceToken": {
+          "type": "string"
+        },
+        "open": {
+          "type": "boolean"
+        },
+        "updatedAt": {
+          "type": "integer"
+        }
+      }
+    },
+    "ListShareNamespacesOKBodyItems0": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "namespaceToken": {
           "type": "string"
         }
       }
@@ -6042,13 +8414,39 @@ func init() {
         }
       }
     },
-    "PublicFrontendsItems0": {
+    "OverviewNamesItems0": {
       "type": "object",
       "properties": {
-        "publicName": {
+        "createdAt": {
+          "type": "integer"
+        },
+        "name": {
           "type": "string"
         },
-        "urlTemplate": {
+        "namespaceName": {
+          "type": "string"
+        },
+        "namespaceToken": {
+          "type": "string"
+        },
+        "reserved": {
+          "type": "boolean"
+        },
+        "shareToken": {
+          "type": "string"
+        }
+      }
+    },
+    "OverviewNamespacesItems0": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "namespaceToken": {
           "type": "string"
         }
       }
@@ -6062,6 +8460,23 @@ func init() {
         "backendMode": {
           "type": "string"
         },
+        "failure": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer"
+            },
+            "id": {
+              "type": "string"
+            },
+            "lastError": {
+              "type": "string"
+            },
+            "nextRetry": {
+              "type": "string"
+            }
+          }
+        },
         "frontendEndpoints": {
           "type": "array",
           "items": {
@@ -6069,9 +8484,6 @@ func init() {
           }
         },
         "open": {
-          "type": "boolean"
-        },
-        "reserved": {
           "type": "boolean"
         },
         "shareMode": {
@@ -6082,6 +8494,69 @@ func init() {
         },
         "token": {
           "type": "string"
+        }
+      }
+    },
+    "SharesItems0Failure": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "lastError": {
+          "type": "string"
+        },
+        "nextRetry": {
+          "type": "string"
+        }
+      }
+    },
+    "accessSummary": {
+      "type": "object",
+      "properties": {
+        "backendMode": {
+          "type": "string"
+        },
+        "bindAddress": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "description": {
+          "type": "string"
+        },
+        "envZId": {
+          "type": "string"
+        },
+        "frontendToken": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "limited": {
+          "type": "boolean"
+        },
+        "shareToken": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "integer"
+        }
+      }
+    },
+    "accessesList": {
+      "type": "object",
+      "properties": {
+        "accesses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/accessSummary"
+          }
         }
       }
     },
@@ -6165,10 +8640,56 @@ func init() {
         }
       }
     },
+    "environmentSummary": {
+      "type": "object",
+      "properties": {
+        "accessCount": {
+          "type": "integer"
+        },
+        "address": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "description": {
+          "type": "string"
+        },
+        "envZId": {
+          "type": "string"
+        },
+        "host": {
+          "type": "string"
+        },
+        "limited": {
+          "type": "boolean"
+        },
+        "remoteAgent": {
+          "type": "boolean"
+        },
+        "shareCount": {
+          "type": "integer"
+        },
+        "updatedAt": {
+          "type": "integer"
+        }
+      }
+    },
     "environments": {
       "type": "array",
       "items": {
         "$ref": "#/definitions/environment"
+      }
+    },
+    "environmentsList": {
+      "type": "object",
+      "properties": {
+        "environments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/environmentSummary"
+          }
+        }
       }
     },
     "errorMessage": {
@@ -6246,20 +8767,54 @@ func init() {
         }
       }
     },
-    "oauthProvider": {
+    "name": {
       "type": "object",
       "properties": {
-        "allowRegistration": {
-          "type": "boolean"
+        "createdAt": {
+          "type": "integer"
         },
         "name": {
           "type": "string"
         },
-        "type": {
+        "namespaceName": {
+          "type": "string"
+        },
+        "namespaceToken": {
+          "type": "string"
+        },
+        "reserved": {
+          "type": "boolean"
+        },
+        "shareToken": {
           "type": "string"
         }
       }
     },
+    "nameSelection": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "namespaceToken": {
+          "type": "string"
+        }
+      }
+    },
+	 "oauthProvider": {
+	  "type": "object",
+	  "properties": {
+		"allowRegistration": {
+		  "type": "boolean"
+		},
+		"name": {
+		  "type": "string"
+		},
+		"type": {
+		  "type": "string"
+		}å
+	  }
+	},
     "overview": {
       "type": "object",
       "properties": {
@@ -6270,6 +8825,18 @@ func init() {
           "type": "array",
           "items": {
             "$ref": "#/definitions/environmentAndResources"
+          }
+        },
+        "names": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OverviewNamesItems0"
+          }
+        },
+        "namespaces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OverviewNamespacesItems0"
           }
         }
       }
@@ -6303,31 +8870,28 @@ func init() {
         "backendMode": {
           "type": "string"
         },
-        "backendProxyEndpoint": {
-          "type": "string"
-        },
         "createdAt": {
           "type": "integer"
         },
         "envZId": {
           "type": "string"
         },
-        "frontendEndpoint": {
-          "type": "string"
-        },
-        "frontendSelection": {
-          "type": "string"
+        "frontendEndpoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "limited": {
-          "type": "boolean"
-        },
-        "reserved": {
           "type": "boolean"
         },
         "shareMode": {
           "type": "string"
         },
         "shareToken": {
+          "type": "string"
+        },
+        "target": {
           "type": "string"
         },
         "updatedAt": {
@@ -6350,12 +8914,6 @@ func init() {
         "authScheme": {
           "type": "string"
         },
-        "authUsers": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/authUser"
-          }
-        },
         "backendMode": {
           "type": "string",
           "enum": [
@@ -6368,20 +8926,20 @@ func init() {
             "socks"
           ]
         },
-        "backendProxyEndpoint": {
-          "type": "string"
+        "basicAuthUsers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/authUser"
+          }
         },
         "envZId": {
           "type": "string"
         },
-        "frontendSelection": {
+        "nameSelections": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/definitions/nameSelection"
           }
-        },
-        "oauthAuthorizationCheckInterval": {
-          "type": "string"
         },
         "oauthEmailDomains": {
           "type": "array",
@@ -6392,6 +8950,9 @@ func init() {
         "oauthProvider": {
           "type": "string"
         },
+        "oauthRefreshInterval": {
+          "type": "string"
+        },
         "permissionMode": {
           "type": "string",
           "enum": [
@@ -6399,8 +8960,8 @@ func init() {
             "closed"
           ]
         },
-        "reserved": {
-          "type": "boolean"
+        "privateShareToken": {
+          "type": "string"
         },
         "shareMode": {
           "type": "string",
@@ -6409,7 +8970,7 @@ func init() {
             "private"
           ]
         },
-        "uniqueName": {
+        "target": {
           "type": "string"
         }
       }
@@ -6428,10 +8989,59 @@ func init() {
         }
       }
     },
+    "shareSummary": {
+      "type": "object",
+      "properties": {
+        "backendMode": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "envZId": {
+          "type": "string"
+        },
+        "frontendEndpoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "limited": {
+          "type": "boolean"
+        },
+        "shareMode": {
+          "type": "string"
+        },
+        "shareToken": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "integer"
+        },
+        "zId": {
+          "type": "string"
+        }
+      }
+    },
     "shares": {
       "type": "array",
       "items": {
         "$ref": "#/definitions/share"
+      }
+    },
+    "sharesList": {
+      "type": "object",
+      "properties": {
+        "shares": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/shareSummary"
+          }
+        }
       }
     },
     "sparkData": {
